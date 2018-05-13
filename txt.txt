@@ -1,0 +1,367 @@
+Processor 16F877A
+include<P16f877a.inc>
+__CONFIG_CP_OFF &_WDT_OFF &_BODEN_OFF &_PWRTE_ON &_XT_OCS &_WRT_OFF &_LVP_OFF &_CPD_OFF
+;;;;;;;;khai_bao_bien;;;;;;;;
+nhietdo equ 0x20
+nhietdo1 equ 0x21
+hc_nhietdo equ 0x22
+hdv_nhietdo equ 0x23
+gio equ 0x24
+gio1 equ 0x25
+hc_gio equ 0x26
+hdv_gio equ 0x27
+phut equ 0x28
+phut1 equ 0x29
+hc_phut equ 0x30
+hdv_phut equ 0x31
+giay equ 0x32
+giay1 equ 0x33
+hc_giay equ 0x34
+hdv_giay equ 0x35
+vong equ 0x36
+i equ 0x37
+org 0x0000
+goto start
+;;;;;;;;chuong_trinh_ngat;;;;;;;;
+org 0x0004
+btfss PIR1,TMR1IF
+goto thoat_ngat
+bcf TICON,TMR1ON
+
+clrf TMR1L
+clrf TMR1H
+movlw 0xB
+movwf TMR1H
+movlw 0xDC
+movwf TMR1L
+bsf T1CON,TMR1ON
+bcf PIR1,TMR1IF
+incf i,f
+movf i,w
+xorlw d'2'
+btfss status,z
+goto thoat_ngat
+clrf i
+incf giay,f
+movf giay,w
+xorlw d'60'
+btfss status,z
+goto thoat_ngat
+clrf giay
+incf phut,f
+movf phut,w
+xorlw d'60'
+btfss status,z
+goto thoat_ngat
+clrf giay
+clrf phut
+incf gio,f
+movf gio,w
+xorlw d'24'
+btfss status,z
+goto thoat_ngat
+clrf giay
+clrf phut
+clrf gio
+goto thoat_ngat
+thoat_ngat:
+RETFIE
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+start:
+;;;;;;;;;;;khoi_tao_port;;;;;;;;;;;
+bsf status,5
+bsf trisA,0
+movlw 0xff
+movwf trisB
+clrf trisC
+clrf trisD
+bcf status,5
+clrf portC
+clrf portD
+;;;;;;;;;;;khoi_tao_adc;;;;;;;;;;;;
+bsf status,5
+movlw b'10001110'
+movwf ADCON1
+bcf status,5
+movlw b'10000001'
+movwf ADCON0
+;;;;;;;;;;;khoi_tao_timer1;;;;;;;;;;;
+bsf status,5
+bsf PIE1,0
+bcf status,5
+movlw b'11000000'
+movwf INTCON
+bcf PIR1,0
+movlw b'00110000'
+movwf T1CON
+clrf TMR1H
+clrf TMR1L
+movlw 0xB
+movwf TMR1H
+movlw 0xDC
+movwf TMR1L
+bsf T1CON,TMR1ON
+;;;;;;;;;;;khoi_tao_bien;;;;;;;;;;;
+clrf nhietdo
+clrf gio
+clrf phut
+clrf giay
+clrf i
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+main:
+btfsc portb,0
+goto loop
+btfss portb,0
+goto $-1
+goto chinhgio
+loop:
+;;;;;;;;;;;;doc_adc;;;;;;;;;;;;;;;
+bsf ADCON0,GO
+btfsc ADCON0,GO
+goto $-1
+bsf status,5
+movf ADRESL,W
+bcf status,5
+movwf nhietdo
+bcf status,c
+rrf nhietdo
+call hienthi
+goto main
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+chinhgio:
+bcf INTCON,GIE
+call hienthi
+btfsc portB,0
+goto kiemtra1
+btfss portB,0
+goto $-1
+goto chinhphut
+kiemtra1:
+btfsc portB,1
+goto kiemtra2
+btfss portB,1
+goto $-1
+incf gio,f
+movf gio,w
+xorlw d'24'
+btfss status,z
+goto chinhgio
+clrf gio
+goto chinhgio
+kiemtra2:
+btfsc portB,2
+goto chinhgio
+btfss portB,2
+goto $-1
+movlw d'1'
+subwf gio,f
+btfsc status,c
+goto chinhgio
+movlw d'23'
+movwf gio
+goto chinhgio
+;;;;;;;;;;;
+chinhphut:
+call hienthi
+btfsc portb,0
+goto kiemtra3
+btfss portb,0
+goto $-1
+bsf INTCON,GIE
+goto main
+kiemtra3:
+btfsc portb,1
+goto kiemtra4
+btfss portb,1
+goto $-1
+incf phut,f
+movf phut,w
+xorlw d'60'
+btfss status,z
+goto chinhphut
+clrf phut
+goto chinhphut
+kiemtra4:
+btfsc portb,2
+goto chinhphut
+btfss portb,2
+goto $-1
+movlw d'1'
+subwf phut,f
+btfsc status,c
+goto chinhphut
+movlw d'59'
+movwf phut
+goto chinhphut
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+hienthi:
+movf giay,w
+movwf giay1
+clrf hdv_giay
+clrf hc_giay
+a_giay:
+movlw d'10'
+subwf giay1,f
+btfsc status,c
+goto sai_giay
+movlw d'10'
+addwf giay1,w
+movwf hdv_giay
+goto thoat_giay
+sai_giay:
+incf hc_giay,f
+goto a_giay
+thoat_giay:
+movf hdv_giay,w
+call BANGMA
+movwf portC
+movlw 0x1
+movwf portD
+call DELAY
+movlw 0x00
+movwf portD
+movlw 0xff
+movwf portC
+movf hc_giay,w
+call BANGMA
+movwf portC
+movlw 0x2
+movwf portD
+call DELAY
+movlw 0x00
+movwf portD
+movlw 0xff
+movwf portC
+movf phut,w
+movwf phut1
+clrf hdv_phut
+clrf hc_phut
+a_phut:
+movlw d'10'
+subwf phut1,f
+btfsc status,c
+goto sai_phut
+movlw d'10'
+addwf phut1,w
+movwf hdv_phut
+goto thoat_phut
+sai_phut:
+incf hc_phut,f
+goto a_phut
+thoat_phut:
+movf hdv_phut,w
+call BANGMA
+movwf portC
+movlw 0x4
+movwf portD
+call DELAY
+movlw 0x00
+movwf portD
+movlw 0xff
+movwf portC
+movf hc_phut,w
+call BANGMA
+movwf portC
+movlw 0x8
+movwf portD
+call DELAY
+movlw 0x00
+movwf portD
+movlw 0xff
+movwf portC
+movf gio,w
+movwf gio1
+clrf hdv_gio
+clrf hc_gio
+a_gio:
+movlw d'10'
+subwf gio1,f
+btfsc status,c
+goto sai_gio
+movlw d'10'
+addwf gio1,w
+movwf hdv_gio
+goto thoat_gio
+sai_gio:
+incf hc_gio,f
+goto a_gio
+thoat_gio:
+movf hdv_gio,w
+call BANGMA
+movwf portC
+movlw 0x10
+movwf portD
+call DELAY
+movlw 0x00
+movwf portD
+movlw 0xff
+movwf portC
+movf hc_gio,w
+call BANGMA
+movwf portC
+movlw 0x20
+movwf portD
+call DELAY
+movlw 0x00
+movwf portD
+movlw 0xff
+movwf portC
+movf nhietdo,w
+movwf nhietdo1
+clrf hdv_nhietdo
+clrf hc_nhietdo
+a_nhietdo:
+movlw d'10'
+subwf nhietdo1,f
+btfsc status,c
+goto sai_nhietdo
+movlw d'10'
+addwf nhietdo1,w
+movwf hdv_nhietdo
+goto thoat_nhietdo
+sai_nhietdo:
+incf hc_nhietdo,f
+goto a_nhietdo
+thoat_nhietdo:
+movf hdv_nhietdo,w
+call BANGMA
+movwf portC
+movlw 0x20
+movwf portD
+call DELAY
+movlw 0x00
+movwf portD
+movlw 0xff
+movwf portC
+movf hc_nhietdo,w
+call BANGMA
+movwf portC
+movlw 0x20
+movwf portD
+call DELAY
+movlw 0x00
+movwf portD
+movlw 0xff
+movwf portC
+RETURN
+BANGMA:
+ADDWF PCL,F
+RETLW 0XC0
+RETLW 0XF9
+RETLW 0XA4
+RETLW 0XB0
+RETLW 0X99
+RETLW 0X92
+RETLW 0X82
+RETLW 0XF8
+RETLW 0X80
+RETLW 0X90
+DELAY:
+movlw D'249'
+movwf vong
+lap:
+nop
+decfsz vong
+goto lap
+RETURN
+END
